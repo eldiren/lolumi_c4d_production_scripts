@@ -1,3 +1,14 @@
+# this script asks for a file name and exports the selected lights
+# into a common json format that can be reimported with light_rig_import
+# or imported with the combined script/hda lo_light_importer in houdini
+
+# currently supports Arnold, Redshift, and Octane lights allowing import
+# and export of any to any
+
+# Note Octane light power is a little strange, Redshift and Arnold
+# are one to one with this script, Octane to/from might require some
+# tweaking to get the look right
+
 import c4d, json
 from c4d import gui
 
@@ -44,9 +55,6 @@ C4DAI_SHADERLINK_SHADER_NETWORK = 104
 C4DAI_SHADERLINK_TYPE__CONSTANT = 1
 C4DAI_SHADERLINK_TYPE__TEXTURE = 2
 C4DAI_SHADERLINK_TYPE__SHADER_NETWORK = 3
-
-# exports selected lights into a light rig defintion as json for 
-# quick import into other scenes
 
 def ReadShaderLinkGui(node, id):
     color = (0,0,0)
@@ -110,10 +118,10 @@ def main():
             if use_texture:
                 value['use_texture'] = use_texture
                 value['texture'] = texture
+                value['format'] = obj[C4DAIP_SKYDOME_LIGHT_FORMAT]
             else:    
                 value['color'] = color
                 
-            data[obj.GetName()] = value
         if obj.GetType() == 1030424: # Arnold Light 
             if obj[101] == C4DAIN_POINT_LIGHT:
                 value['type'] = 'point'
@@ -156,9 +164,53 @@ def main():
                 value['roundness'] = obj[1641633270]
                 value['soft_edge'] = obj[1632353189]
                 value['spread'] = obj[1730825676]
-            
-            data[obj.GetName()] = value
         
+        otag = obj.GetTag(1029526)    
+        if otag: # Octane Light 
+            value['type'] = 'quad'
+            value['intensity'] = otag[c4d.LIGHTTAG_POWER]                
+            
+            value['normalize'] = otag[c4d.LIGHTTAG_NORMALIZE]
+            shader = otag[c4d.LIGHTTAG_EFFIC_OR_TEX]
+            if shader:
+                if shader.GetType() == c4d.Xcolor:
+                    value['color'] = (shader[c4d.COLORSHADER_COLOR][0],shader[c4d.COLORSHADER_COLOR][1],shader[c4d.COLORSHADER_COLOR][2])
+                elif shader.GetType() == 1029504: # RGBSpectrum
+                    value['color'] = (shader[c4d.RGBSPECTRUMSHADER_COLOR][0],shader[c4d.RGBSPECTRUMSHADER_COLOR][1],shader[c4d.RGBSPECTRUMSHADER_COLOR][2])
+                elif shader.GetType() == c4d.Xbitmap:
+                    value['use_texture'] = 1
+                    value['texture'] = shader[c4d.BITMAPSHADER_FILENAME]
+                elif shader.GetType() == 1029508: # ImageTexture
+                    value['use_texture'] = 1
+                    value['texture'] = shader[c4d.IMAGETEXTURE_FILE]
+            else:            
+                value['ctemp'] = otag[c4d.LIGHTTAG_BB_TEMPERATURE]
+        
+        otag = obj.GetTag(1029643)    
+        if otag: # Octane Environment Light
+            value['type'] = 'skydome'
+            
+            shader = otag[c4d.ENVIRONMENTTAG_TEXTURE]
+            if shader:
+                if shader.GetType() == c4d.Xcolor:
+                    value['color'] = (shader[c4d.COLORSHADER_COLOR][0],shader[c4d.COLORSHADER_COLOR][1],shader[c4d.COLORSHADER_COLOR][2])
+                elif shader.GetType() == 1029504: # RGBSpectrum
+                    value['color'] = (shader[c4d.RGBSPECTRUMSHADER_COLOR][0],shader[c4d.RGBSPECTRUMSHADER_COLOR][1],shader[c4d.RGBSPECTRUMSHADER_COLOR][2])
+                elif shader.GetType() == c4d.Xbitmap:
+                    value['use_texture'] = 1
+                    value['texture'] = shader[c4d.BITMAPSHADER_FILENAME]
+                    value['format'] = 2 # latlong                
+                elif shader.GetType() == 1029508: # ImageTexture
+                    value['use_texture'] = 1
+                    value['texture'] = shader[c4d.IMAGETEXTURE_FILE]
+                    value['format'] = 2 # latlong
+            
+            value['intensity'] = otag[c4d.ENVIRONMENTTAG_POWER]
+            value['normalize'] = 1
+            
+        if value['type']:
+            data[obj.GetName()] = value
+               
     json.dump(data, f, indent=2)
     
     f.close()

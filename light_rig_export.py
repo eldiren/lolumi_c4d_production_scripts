@@ -168,7 +168,8 @@ def main():
         otag = obj.GetTag(1029526)    
         if otag: # Octane Light 
             value['type'] = 'quad'
-            value['intensity'] = otag[c4d.LIGHTTAG_POWER]                
+            value['intensity'] = otag[c4d.LIGHTTAG_POWER]
+            value['color'] = (1,1,1) # default color                
             
             value['normalize'] = otag[c4d.LIGHTTAG_NORMALIZE]
             shader = otag[c4d.LIGHTTAG_EFFIC_OR_TEX]
@@ -189,6 +190,7 @@ def main():
         otag = obj.GetTag(1029643)    
         if otag: # Octane Environment Light
             value['type'] = 'skydome'
+            value['color'] = (1,1,1) # default color
             
             shader = otag[c4d.ENVIRONMENTTAG_TEXTURE]
             if shader:
@@ -207,6 +209,7 @@ def main():
             
             value['intensity'] = otag[c4d.ENVIRONMENTTAG_POWER]
             value['normalize'] = 1
+            value['rotation'] = (otag[c4d.ENVIRONMENTTAG_ROTX], otag[c4d.ENVIRONMENTTAG_ROTY], 0)
             
         if value['type']:
             data[obj.GetName()] = value

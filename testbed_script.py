@@ -1,6 +1,7 @@
-import c4d, os, sys
-import json
+import c4d, os, sys, json, requests, loutils
+
 import MaterialX as mx
+from Qt import QtWidgets
 
 # load Arnold python modules
 
@@ -46,14 +47,20 @@ MAX_OBJECTS = 5000
 
 oarch = None
 
-class AssignMaterial(object):
-    def __init__(self, matname):
-        self.matname = matname
-        self.objects = []
-        self.groups = []
-
 def main():
-    materialxread()
+    loutils.renameObjsPadding(doc, 'test', 3)
+    
+# quick test to see a Qt program running in C4D    
+def runQt():
+    resp = requests.get('https://todolist.example.com/tasks/')
+    app = QtWidgets.QApplication.instance()
+    if not app:
+        app = QtWidgets.QApplication(sys.argv)
+    
+    app.setQuitOnLastWindowClosed(True)
+    x = QtWidgets.QWidget(windowTitle='Lumiere Editor')
+    x.show()
+    app.exec_()
    
 # Process a materialx document gathering shaders    
 def materialxread():

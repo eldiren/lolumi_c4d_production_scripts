@@ -341,7 +341,7 @@ def writeMatX(filepath):
     materials = []
     # Create a document.
     matxDoc = mx.createDocument()
-    mx.prependXInclude(matxDoc, 'C:/Program Files/MAXON/Cinema 4D R19/plugins/C4DtoA/Arnold/materialx/Arnold/nodedefs.mtlx')
+    mx.prependXInclude(matxDoc, 'H:/Documents/asset_library/mtlx_defs/arn_nodedefs.mtlx')
     
     matXLook = matxDoc.addLook("base")
     

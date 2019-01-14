@@ -306,10 +306,8 @@ def setShaderRef(mdoc, mat, shader, processed_shaders):
     
     sRef = mat.addShaderRef("simple_srf", nodeEntryName)
     
-    # if the shader ref is like the shading group or master beauty/disp port, the nodegraph 
-    # is baiscally all other elements connected to that
-    nGraph = mdoc.addNodeGraph(shader.GetName() + '|graph')
-            
+    # if the shader ref is like the shading group or master beauty/disp port,
+    
     # set parameters
     piter = AiNodeEntryGetParamIterator(nodeEntry)
     while not AiParamIteratorFinished(piter):
@@ -319,29 +317,33 @@ def setShaderRef(mdoc, mat, shader, processed_shaders):
         
         if param != 'name': # let's just skip the name param, that's set already
             bitype, val = getParam(shader.node, pentry)       
-            if AiNodeIsLinked(shader.node, param) or val:
+            if AiNodeIsLinked(shader.node, param):
                 bInput = sRef.addBindInput(param, bitype)
-                            
-                if AiNodeIsLinked(shader.node, param): # this param is linked to a shader, let's make a recursive call to create it and it params
-                    link = ArnoldNode(AiNodeGetLink(shader.node, param))
-                    if link.IsValid():
-                        #print 'shader link found: ' + link.GetName() + ',' + param
-                        if link.GetName() not in processed_shaders:
-                            processed_shaders.append(link.GetName())
-                            oname = setNodeParams(nGraph, link, processed_shaders, True)
-        
-                            bInput.setNodeGraphString(nGraph.getName())
-                            bInput.setOutputString(oname)
-                elif val: # normal parameter, just set value
-                    bInput.setValue(val)
-                #else: # if val doesn't exist then I haven't implemented support for this param type yet
+                
+                # the nodegraph is basically all elements connected to a shader ref input
+                # for the first linked input in a shader ref we'll create a nodegraph
+                nGraph = mdoc.addNodeGraph(shader.GetName() + param + '|graph')
+            
+                link = ArnoldNode(AiNodeGetLink(shader.node, param))
+                if link.IsValid():
+                    #print 'shader link found: ' + link.GetName() + ',' + param
+                    if link.GetName() not in processed_shaders:
+                        processed_shaders.append(link.GetName())
+                        oname = setNodeParams(nGraph, link, processed_shaders, True)
+    
+                        bInput.setNodeGraphString(nGraph.getName())
+                        bInput.setOutputString(oname)
+            elif val: # normal parameter, just set value
+                bInput = sRef.addBindInput(param, bitype)
+                bInput.setValue(val)
+            #else: # if val doesn't exist then I haven't implemented support for this param type yet
                         
                 
 def writeMatX(filepath):
     materials = []
     # Create a document.
     matxDoc = mx.createDocument()
-    mx.prependXInclude(matxDoc, 'C:/Program Files/MAXON/Cinema 4D R19/plugins/C4DtoA/Arnold/materialx/Arnold/nodedefs.mtlx')
+    mx.prependXInclude(matxDoc, 'H:/Documents/asset_library/mtlx_defs/arn_nodedefs.mtlx')
     
     matXLook = matxDoc.addLook("base")
     

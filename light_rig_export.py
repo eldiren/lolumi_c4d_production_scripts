@@ -114,6 +114,7 @@ def main():
             value['type'] = 'skydome'
             
             color, use_texture, texture = ReadShaderLinkGui(obj, C4DAIP_SKYDOME_LIGHT_COLOR)
+            value['intensity'] = obj[C4DAIP_SKYDOME_LIGHT_INTENSITY] * 2 ** obj[C4DAIP_SKYDOME_LIGHT_EXPOSURE]
                
             if use_texture:
                 value['use_texture'] = use_texture

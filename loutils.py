@@ -169,16 +169,24 @@ def swapC4DBitmapforArnoldImage(doc):
         i += 1
                         
 # will rename the selected objects with a number padding
-def renameObjsPadding(doc, name, fill):
-    objs = doc.GetActiveObjects(c4d.GETACTIVEOBJECTFLAGS_0)
-    i = 0
-    for obj in objs:
-        num = str(i)
-        name = name + num.zfill(fill)
-        obj.SetName(name)
-        i += 1
-        
-    c4d.EventAdd()
+def renameObjsPadding(doc, name, fill, c=False):
+    objs = None
+    if c:
+        aObj = doc.GetActiveObject()
+        if aObj:
+            objs = aObj.GetChildren()
+    else:
+        objs = doc.GetActiveObjects(c4d.GETACTIVEOBJECTFLAGS_0)
+    
+    if objs:
+        i = 0
+        for obj in objs:
+            num = str(i)
+            name = name + num.zfill(fill)
+            obj.SetName(name)
+            i += 1
+            
+        c4d.EventAdd()
 
 def GetNextObject(op):
     if op==None:
@@ -211,7 +219,7 @@ def GetAllObjects(odoc):
 def polyselectionbreak(bdoc, bobj):
     if not bobj: return
     
-    obj = bobj # the modeling commands change the op so we need to store this
+    obj = bobj # the modeling commands change the bobj so we need to store this
     gMatrix = bobj.GetMg()
     tag = obj.GetFirstTag()
     
@@ -423,7 +431,7 @@ def arnold_material_export(assdoc, fileName):
     
 # Takes selected objects, isolates them to seperate documents, and exports them as alembics
 # in the file select it expects a path you want to dump the files to, the filename doesn't matter    
-def exportAssets():
+def exportAssets(doc):
     filePath = c4d.storage.SaveDialog(c4d.FILESELECTTYPE_ANYTHING, "Export path...", c4d.FILESELECT_SAVE)
     paths = filePath.rsplit('\\', 1)
     

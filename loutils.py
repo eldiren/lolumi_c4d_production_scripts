@@ -1,4 +1,4 @@
-import c4d, json
+import c4d, json, re
 from c4d import gui, utils
 
 ARNOLD_ASS_EXPORT = 1029993
@@ -518,4 +518,116 @@ def exportAssets(doc):
         
         c4d.documents.KillDocument(bldgdoc)
     
+    c4d.EventAdd()
+
+def SanitizeEndNumber(name, symbol):
+    # C4D Alembic mangles numbers at the end if they begin
+    # with '_', so we check that and convert to '-'
+    if(name.split(symbol)[-1].isdigit()):
+        nname_parse = name.rsplit(symbol, 1)
+        name = nname_parse[0] + '-' + nname_parse[1]
+        print name
+
+    return name
+
+# compares a name with a list of stored names and if it matches creates a new unique name
+def CompareName(name, symbol, unique_names):
+    # if the name is not unique we'll keep trying indexes here till we find a name 
+    # that's unique
+    if name in unique_names:
+        newname = None
+        index = 0
+
+        while(1):            
+            newname = name + symbol + str(index)
+            newname = SanitizeEndNumber(newname, symbol)
+
+            if newname in unique_names:
+                index += 1
+            else:
+                unique_names.append(newname)
+                return newname         
+            
+
+    # if we make it here just sanitize the numbers on the passed in name
+    name = SanitizeEndNumber(name, symbol)
+    unique_names.append(name)
+
+    return name
+
+def sanitize_name(obj, symbol, unique_names):
+    # replaces invalid symbols in a name with the symbol specified
+    # by the user, then compares it against the unique name list
+    name = obj.GetName()
+
+    newname = re.sub(r"[/\?\[\.|_\- \]#]", symbol, name)
+    newname = newname.lower()
+
+    newname = CompareName(newname, symbol, unique_names)
+
+    #print newname
+    obj.SetName(newname)
+
+# renames objects materials and poly selection tags so the names
+# are consistent during export, if names have special characters
+# or exact same names they can and will get mangled by the C4D
+# export process, this is bad as we rely on exact same names for
+# many of our tools in other programs
+def name_sanitizer(doc):
+    unique_names = []
+
+    # sanitize objects
+    obj = doc.GetFirstObject()
+
+    if obj is None:
+        return
+
+    while obj:
+        sanitize_name(obj, "_", unique_names)
+
+        tag = obj.GetFirstTag()
+        while tag:
+            if tag.GetType() == 5673: # poly selection
+                # it's possible that a selection could have the
+                # same name as another on a different object
+                # this is a material conflict in other programs
+                # also selections that begin with a number are a
+                # no go as well, so this works great
+
+                old_sel_name = tag.GetName()
+
+                tag.SetName(obj.GetName() + "_" + tag.GetName())
+
+                sanitize_name(tag, "_", unique_names)
+
+                new_sel_name = tag.GetName()
+
+                # Selection tags aren't linked, we have to go
+                # the texture tags replacing the old name with the
+                #new one
+                textag = obj.GetFirstTag()
+                while textag:
+                    if textag.GetType() == 5616: # texture tag
+                        if old_sel_name == textag[c4d.TEXTURETAG_RESTRICTION]:
+                            textag[c4d.TEXTURETAG_RESTRICTION] = new_sel_name
+
+                    textag = textag.GetNext()
+
+            tag = tag.GetNext()
+
+        obj = GetNextObject(obj)
+
+    c4d.EventAdd()
+
+    # sanitize materials
+    mat = doc.GetFirstMaterial()
+
+    if mat is None:
+        return
+
+    while mat:
+        sanitize_name(mat, "_", unique_names)
+
+        mat = mat.GetNext()
+
     c4d.EventAdd()

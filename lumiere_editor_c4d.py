@@ -30,9 +30,9 @@ def main():
 
     hbox = QtWidgets.QHBoxLayout(lumiMain)
 
-
     glayout = QtWidgets.QGridLayout()
     scroll = QtWidgets.QScrollArea()
+    scroll.setWidgetResizable(True)
     assetArea = QtWidgets.QWidget()
     assetArea.resize(400, 400)
     assetArea.setLayout(glayout)
@@ -44,7 +44,8 @@ def main():
 
         pixmap = QtGui.QPixmap(img_path)
         lbl = QtWidgets.QLabel()
-        lbl.setPixmap(pixmap.scaled(64,64, QtCore.Qt.KeepAspectRatio))
+        lbl.resize(120,120)
+        lbl.setPixmap(pixmap.scaled(lbl.width(),lbl.height(), QtCore.Qt.KeepAspectRatio))
 
         glayout.addWidget(lbl, row, col)
         col += 1

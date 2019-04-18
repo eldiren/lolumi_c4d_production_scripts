@@ -1,4 +1,4 @@
-import c4d
+import c4d, loutils
 from c4d import gui, utils
 
 import json

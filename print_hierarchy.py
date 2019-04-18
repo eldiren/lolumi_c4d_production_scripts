@@ -1,19 +1,5 @@
-import c4d
+import c4d, loutils
 from c4d import gui
-#Welcome to the world of Python
-
-def GetNextObject(op):
-    if op==None:
-        return None
-  
-    if op.GetDown():
-        return op.GetDown()
-  
-    while not op.GetNext() and op.GetUp():
-        op = op.GetUp()
-  
-    return op.GetNext()
- 
  
 def IterateHierarchy(op):
     if op is None:
@@ -24,7 +10,7 @@ def IterateHierarchy(op):
     while op:
         count += 1
         print op.GetName()
-        op = GetNextObject(op)
+        op = loutils.GetNextObject(op)
  
     return count
 

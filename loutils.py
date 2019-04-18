@@ -188,18 +188,18 @@ def renameObjsPadding(doc, name, fill, c=False):
             
         c4d.EventAdd()
 
-def GetNextObject(op):
+# get the next object in a heriarchy, allows inclusive searches by using parent arg
+def GetNextObject(op, parent=None):
     if op==None:
         return None
   
     if op.GetDown():
         return op.GetDown()
   
-    while not op.GetNext() and op.GetUp():
+    while not op.GetNext() and op.GetUp() and (op.GetUp() != parent):
         op = op.GetUp()
   
     return op.GetNext()
- 
  
 def GetAllObjects(odoc):
     objects = []

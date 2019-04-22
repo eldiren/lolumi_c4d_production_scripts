@@ -35,6 +35,7 @@ def main():
     plane[c4d.PRIM_PLANE_HEIGHT] = 150
     plane[c4d.PRIM_PLANE_SUBW] = 6
     plane[c4d.PRIM_PLANE_SUBH] = 4
+    plane[c4d.ID_BASEOBJECT_REL_SCALE,c4d.VECTOR_X] = -1
     doc.InsertObject(plane)
     plane.MakeTag(1001001) # align to camera tag
 

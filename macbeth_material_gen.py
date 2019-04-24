@@ -30,6 +30,7 @@ color_data = [
 
 def main():
     plane = c4d.BaseObject(c4d.Oplane)
+    plane.SetName('macbeth_chart')
     plane[c4d.PRIM_AXIS] = 4
     plane[c4d.PRIM_PLANE_WIDTH] = 235
     plane[c4d.PRIM_PLANE_HEIGHT] = 150

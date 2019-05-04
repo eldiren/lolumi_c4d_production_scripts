@@ -1,6 +1,64 @@
 import c4d, json, re
 from c4d import gui, utils
 
+MATCONV_C4D = 0
+MATCONV_VRAY = 1
+MATCONV_ARNOLD = 2
+MATCONV_OCTANE = 3
+MATCONV_REDSHIFT = 4
+MATCONV_CORONA = 5
+
+VrayAdvancedMaterial = 1020295
+VrayShader = 1026701
+VrayBitmap = 10
+
+# from res/c4d_symbols.h
+# Octane materials, create with BaseMaterial
+ID_OCTANE_DIFFUSE_MATERIAL = 1029501
+ID_OCTANE_MIX_MATERIAL = 1029622
+
+#Shaders, create with a BaseShader
+ID_OCTANE_BLACKBODY_EMISSION = 1029641
+ID_OCTANE_IMAGE_TEXTURE	= 1029508
+ID_OCTANE_TRANSFORM = 1030961
+
+# from res/description/OctaneMaterial.h
+# Octane diffuse material types, and params
+OCT_MATERIAL_TYPE = 2509
+OCT_MATERIAL_DIFFUSE = 2510
+OCT_MATERIAL_GLOSSY = 2511
+OCT_MATERIAL_SPECULAR = 2513
+
+OCT_MATERIAL_DIFFUSE_COLOR = 2515	
+OCT_MATERIAL_DIFFUSE_LINK = 2517
+OCT_MATERIAL_DIFFUSE_FLOAT = 2518
+OCT_MATERIAL_SPECULAR_COLOR = 2522
+OCT_MATERIAL_SPECULAR_FLOAT = 2523
+OCT_MATERIAL_SPECULAR_LINK = 2524
+OCT_MATERIAL_REFLECTION_COLOR = 2526
+OCT_MATERIAL_REFLECTION_FLOAT= 2527
+OCT_MATERIAL_REFLECTION_LINK = 2528
+OCT_MATERIAL_ROUGHNESS_FLOAT = 2532
+OCT_MATERIAL_ROUGHNESS_LINK = 2533
+OCT_MATERIAL_BUMP_LINK = 2539
+OCT_MATERIAL_BUMP_FLOAT = 2541
+OCT_MATERIAL_NORMAL_LINK = 2542
+OCT_MATERIAL_OPACITY_LINK = 2545
+OCT_MATERIAL_INDEX = 2551
+OCT_MATERIAL_TRANSMISSION_LINK = 2555
+OCT_MATERIAL_EMISSION = 2557
+
+# from res/description/ImageTexture.h
+IMAGETEXTURE_FILE = 1100
+IMAGETEXTURE_TRANSFORM_LINK = 1110
+
+# From res/description/BlackBodyEmission.h
+BBEMISSION_EFFIC_OR_TEX = 2024
+
+# from res/description/Transform.h
+TRANSFORM_SX = 1269
+TRANSFORM_SY = 1270
+
 ARNOLD_ASS_EXPORT = 1029993
 
 C4DTOA_MSG_TYPE = 1000
@@ -30,6 +88,11 @@ C4DAI_POLYMESH_SSS_SET_NAME = 1102
 
 C4DTOA_MSG_TYPE = 1000
 C4DTOA_MSG_ADD_CONNECTION = 1031
+C4DTOA_MSG_ADD_SHADER = 1029
+C4DTOA_MSG_CONNECT_ROOT_SHADER = 1033
+C4DTOA_MSG_COLOR_CORRECTION = 1035
+C4DTOA_MSG_AIBEGIN = 1036
+C4DTOA_MSG_AIEND = 1037
 
 C4DTOA_MSG_PARAM1 = 2001
 C4DTOA_MSG_PARAM2 = 2002
@@ -41,7 +104,10 @@ C4DTOA_MSG_RESP2 = 2012
 C4DTOA_MSG_RESP3 = 2013
 C4DTOA_MSG_RESP4 = 2014
 C4DTOA_MSG_QUERY_SHADER_NETWORK = 1028
-C4DTOA_MSG_ADD_SHADER = 1029
+
+# from api/util/ArnolShaderNetworkUtil.h
+ARNOLD_BEAUTY_PORT_ID = 537905099
+ARNOLD_DISPLACEMENT_PORT_ID = 537905100
 
 # from c4dtoa_symbols.h
 ARNOLD_SHADER_NETWORK = 1033991
@@ -51,6 +117,7 @@ ARNOLD_PARAM_TAG = 1029989
 
 # from api/util/NodeIds.h
 C4DAIN_IMAGE = 262700200
+C4DAIN_STANDARD_SURFACE = 314733630
 
 # from res/description/gvarnoldshader.h
 C4DAI_GVSHADER_TYPE = 200
@@ -73,6 +140,148 @@ class TextureInfo:
         self.shader = shader
         self.path = texturePath                
 
+class MaterialInfo:
+    def __init__(self, mat):
+        self.newMaterial = None
+        self.materialInfoSet = False
+        self.diffuseEnabled = False
+        self.specularEnabled = [False, False]
+        self.refractionEnabled = False
+        self.emissionEnabled = False
+        self.bumpEnabled = False
+        self.opacityEnabled = False
+        self.sssEnabled = False
+        self.normalEnabled = False
+        self.materialName = ''
+        self.diffuseColor = c4d.Vector()
+        self.diffuseBright = 0.0
+        self.diffuseShader = None
+        self.opacityShader = None
+        self.opacityBright = 0.0
+        self.specularShader = [None, None]
+        self.specularColor = [c4d.Vector(), c4d.Vector()]
+        self.specularRough = [0.0, 0.0]
+        self.specularBright = [0.0, 0.0]
+        self.bumpShader = None
+        self.bumpHeight = 0.0
+        self.emissionShader = None
+        self.emissionBright = 0.0
+        self.emissionColor = c4d.Vector()
+        self.refractionIOR = [1.0, 1.0]
+        self.refractionShader = None
+        self.refractionBright = 0.0
+        self.refractionColor = c4d.Vector()
+        self.sssColor = c4d.Vector()
+        self.sssRadius = 0.0
+        self.sssShader = None
+        self.normalShader = None
+        self.normalType = 0
+        self.roughnessShader = [None, None]
+
+        if mat.GetType() == c4d.Mmaterial:
+            self.ConvertC4DMaterial(mat)
+        elif mat.GetType() == VrayAdvancedMaterial:
+            self.ConvertVRayMaterial(mat)
+        elif mat.GetType() == ARNOLD_SHADER_NETWORK:
+            self.ConvertArnoldMaterial(mat)
+        elif mat.GetType() == ID_OCTANE_DIFFUSE_MATERIAL:
+            self.ConvertOctaneDiffMaterial(mat)
+        elif mat.GetType() == 1036224:
+            self.ConvertRedshiftMaterial(mat)
+        else:
+            return
+
+    def ConvertC4DMaterial(self, mat):
+        self.materialInfoSet = True
+
+        self.materialName = mat.GetName()
+            
+    def ConvertVRayMaterial(self, mat):
+        self.materialInfoSet = True
+
+        self.materialName = mat.GetName()
+
+    def ConvertArnoldMaterial(self, mat):
+        self.materialInfoSet = True
+
+        self.materialName = mat.GetName()
+
+    def ConvertOctaneDiffMaterial(self, mat):
+        self.materialInfoSet = True
+
+        self.materialName = mat.GetName()
+
+    def ConvertOctaneUniMaterial(self, mat):
+        self.materialInfoSet = True
+
+        self.materialName = mat.GetName()
+
+    def ConvertRedshiftMaterial(self, mat):
+        self.materialInfoSet = True
+
+        self.materialName = mat.GetName()
+
+    def CreateC4DMaterial(self):
+        # create a standard C4D material
+        newMaterial = c4d.BaseMaterial(c4d.Mmaterial)
+
+        newMaterial.SetName(self.materialName)
+
+        return newMaterial
+
+    def CreateVRayMaterial(self):
+        # create a VRay material
+        newMaterial = c4d.BaseMaterial(VrayAdvancedMaterial)
+
+        newMaterial.SetName(self.materialName)
+
+        if self.diffuseEnabled:
+            pass
+
+        if self.specularEnabled:
+            pass
+
+        if self.refractionEnabled:
+            pass
+
+        if self.opacityEnabled:
+            pass
+        
+        if self.emissionEnabled:
+            pass
+
+        if self.bumpEnabled:
+            pass
+
+        return newMaterial
+
+    def CreateArnoldMaterial(self):
+        # create an Arnold Shader Network
+        newMaterial = c4d.BaseMaterial(ARNOLD_SHADER_NETWORK)
+
+        newMaterial.SetName(self.materialName)
+
+        # crete and attach Arnold Standard Shader
+        rootShader = CreateArnoldShader(self.newMaterial, C4DAIN_STANDARD_SURFACE, 0, 50)
+        SetRootShader(newMaterial, rootShader, ARNOLD_BEAUTY_PORT_ID)
+
+        return newMaterial
+
+    def CreateOctaneMaterial(self):
+        # create an octane material
+        newMaterial = c4d.BaseMaterial(ID_OCTANE_DIFFUSE_MATERIAL)
+        newMaterial[OCT_MATERIAL_TYPE] = 2516 # universal material
+        newMaterial.SetName(self.materialName)
+
+        return newMaterial
+
+    def CreateRedshiftMaterial(self):
+        # create a redshift material
+        newMaterial = c4d.BaseMaterial(1036224)
+        newMaterial.SetName(self.materialName)
+
+        return newMaterial
+        
 def CreateArnoldShader(material, nodeId, posx, posy):
     msg = c4d.BaseContainer()
     msg.SetInt32(C4DTOA_MSG_TYPE, C4DTOA_MSG_ADD_SHADER)
@@ -629,5 +838,38 @@ def name_sanitizer(doc):
         sanitize_name(mat, "_", unique_names)
 
         mat = mat.GetNext()
+
+    c4d.EventAdd()
+
+def convertMaterials(doc, destType):
+    mats = doc.GetActiveMaterials()
+    
+    for mat in mats:
+        # pass a material to MaterialInfo to convert it into a universal format
+        matInfo = MaterialInfo(mat)
+
+        # If a conversion did happen above we figure out which renderer the user wants to convert to 
+        # and call the associated function
+        newMat = None
+        
+        if matInfo.materialInfoSet:
+            if destType == MATCONV_C4D:
+                newMat = matInfo.CreateC4DMaterial()
+            elif destType == MATCONV_VRAY:
+                newMat = matInfo.CreateVRayMaterial()
+            elif destType == MATCONV_ARNOLD:
+                newMat = matInfo.CreateArnoldMaterial()
+            elif destType == MATCONV_OCTANE:
+                newMat = matInfo.CreateOctaneMaterial()
+            elif destType == MATCONV_REDSHIFT:
+                newMat = matInfo.CreateRedshiftMaterial()
+            else:
+                return
+        
+        if newMat:
+            doc.InsertMaterial(newMat, pred=None, checknames=True)
+
+            # Transfer references of the old material to the new material
+            mat.TransferGoal(newMat, False)
 
     c4d.EventAdd()

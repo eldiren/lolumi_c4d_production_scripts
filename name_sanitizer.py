@@ -1,4 +1,4 @@
-import c4d
+import c4d, loutils
 from c4d import gui
 
 # renames objects materials and poly selection tags so the names

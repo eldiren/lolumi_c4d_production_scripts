@@ -19,7 +19,7 @@ ID_OCTANE_MIX_MATERIAL = 1029622
 
 #Shaders, create with a BaseShader
 ID_OCTANE_BLACKBODY_EMISSION = 1029641
-ID_OCTANE_IMAGE_TEXTURE	= 1029508
+ID_OCTANE_IMAGE_TEXTURE = 1029508
 ID_OCTANE_TRANSFORM = 1030961
 
 # from res/description/OctaneMaterial.h
@@ -29,7 +29,7 @@ OCT_MATERIAL_DIFFUSE = 2510
 OCT_MATERIAL_GLOSSY = 2511
 OCT_MATERIAL_SPECULAR = 2513
 
-OCT_MATERIAL_DIFFUSE_COLOR = 2515	
+OCT_MATERIAL_DIFFUSE_COLOR = 2515
 OCT_MATERIAL_DIFFUSE_LINK = 2517
 OCT_MATERIAL_DIFFUSE_FLOAT = 2518
 OCT_MATERIAL_SPECULAR_COLOR = 2522
@@ -138,7 +138,7 @@ class TextureInfo:
     def __init__(self, mat, shader, texturePath):
         self.material = mat
         self.shader = shader
-        self.path = texturePath                
+        self.path = texturePath
 
 class MaterialInfo:
     def __init__(self, mat):
@@ -195,7 +195,7 @@ class MaterialInfo:
         self.materialInfoSet = True
 
         self.materialName = mat.GetName()
-            
+
     def ConvertVRayMaterial(self, mat):
         self.materialInfoSet = True
 
@@ -246,7 +246,7 @@ class MaterialInfo:
 
         if self.opacityEnabled:
             pass
-        
+
         if self.emissionEnabled:
             pass
 
@@ -281,7 +281,7 @@ class MaterialInfo:
         newMaterial.SetName(self.materialName)
 
         return newMaterial
-        
+
 def CreateArnoldShader(material, nodeId, posx, posy):
     msg = c4d.BaseContainer()
     msg.SetInt32(C4DTOA_MSG_TYPE, C4DTOA_MSG_ADD_SHADER)
@@ -316,12 +316,12 @@ def QueryNetwork(material):
     msg.SetInt32(C4DTOA_MSG_TYPE, C4DTOA_MSG_QUERY_SHADER_NETWORK)
     material.Message(c4d.MSG_BASECONTAINER, msg)
     return msg
- 
+
 def GetTexturePath(mat, shader):
     if shader is None: return None
-    
+
     data = shader.GetOpContainerInstance()
-        
+
     if shader.GetOperatorID() == ARNOLD_C4D_SHADER_GV:
         nodeId = data.GetInt32(C4DAI_GVC4DSHADER_TYPE)
         print "Node ID: " + str(nodeId)
@@ -330,16 +330,16 @@ def GetTexturePath(mat, shader):
             c4d_shader = shader.GetFirstShader()
             if c4d_shader is not None:
                outports = shader.GetOutPorts(0)
-               if outports[0]:    
+               if outports[0]:
                   if outports[0].GetNrOfConnections() > 0:
                      inport = outports[0].GetDestination()
                      connectedNode = inport[0].GetNode()
                      print "Connected shader: " + connectedNode.GetName()
-               
+
                      image = CreateArnoldShader(mat, C4DAIN_IMAGE, 0, 50)
                      if image is None:
                         raise Exception("Failed to create image shader")
-                     
+
                      imagepath = c4d_shader.GetDataInstance().GetFilename(c4d.BITMAPSHADER_FILENAME)
                      image.GetOpContainerInstance().SetFilename(C4DAIP_IMAGE_FILENAME, imagepath)
                      image.GetOpContainerInstance().SetString(868305056, 'linear')
@@ -351,7 +351,7 @@ def GetTexturePath(mat, shader):
 # swap C4D Arnold Bitmap shaders for Arnold Image nodes
 def swapC4DBitmapforArnoldImage(doc):
     textures = []
-    
+
     # collect textures
     mat = doc.GetFirstMaterial()
     while mat:
@@ -366,7 +366,7 @@ def swapC4DBitmapforArnoldImage(doc):
                 if texturePath:
                     texture = TextureInfo(mat, shader, texturePath)
                     textures.append(texture)
-        
+
         mat = mat.GetNext()
 
     # print textures
@@ -376,7 +376,7 @@ def swapC4DBitmapforArnoldImage(doc):
     for texture in textures:
         print " %d. %s.%s: %s" % (i, texture.material.GetName(), texture.shader.GetName(), texture.path)
         i += 1
-                        
+
 # will rename the selected objects with a number padding
 def renameObjsPadding(doc, name, fill, c=False):
     objs = None
@@ -386,7 +386,7 @@ def renameObjsPadding(doc, name, fill, c=False):
             objs = aObj.GetChildren()
     else:
         objs = doc.GetActiveObjects(c4d.GETACTIVEOBJECTFLAGS_0)
-    
+
     if objs:
         i = 0
         for obj in objs:
@@ -394,88 +394,88 @@ def renameObjsPadding(doc, name, fill, c=False):
             name = name + num.zfill(fill)
             obj.SetName(name)
             i += 1
-            
+
         c4d.EventAdd()
 
 # get the next object in a heriarchy, allows inclusive searches by using parent arg
 def GetNextObject(op, parent=None):
     if op==None:
         return None
-  
+
     if op.GetDown():
         return op.GetDown()
-  
+
     while not op.GetNext() and op.GetUp() and (op.GetUp() != parent):
         op = op.GetUp()
-  
+
     return op.GetNext()
- 
+
 def GetAllObjects(odoc):
     objects = []
     op = odoc.GetFirstObject()
-    
+
     if op is None:
         return
-  
+
     while op:
         objects.append(op)
         op = GetNextObject(op)
- 
+
     return objects
-    
+
 # takes an object with poly selection and breaks it up so the selections are children of the parent, also keeps child material
 # assignments, useful in ARnold mtlx workflows, and packed disk workflows since we can't reach polygroups
 def polyselectionbreak(bdoc, bobj):
     if not bobj: return
-    
+
     obj = bobj # the modeling commands change the bobj so we need to store this
     gMatrix = bobj.GetMg()
     tag = obj.GetFirstTag()
-    
+
     newChildren = []
-    
+
     while tag:
         if tag.GetType() == c4d.Tpolygonselection:
             # deselect all polygons
             polyselection = obj.GetPolygonS()
             polyselection.DeselectAll()
-            
+
             # select polygons from selection tag
             tagselection = tag.GetBaseSelect()
             tagselection.CopyTo(polyselection)
-            
+
             #split: polygonselection to a new object
             sec = utils.SendModelingCommand(command=c4d.MCOMMAND_SPLIT, list=[obj], mode=c4d.MODELINGCOMMANDMODE_POLYGONSELECTION, doc=bdoc)
-             
+
             if not sec:
-                print 'split failed for ' + tag.GetName() 
-                continue    
-                               
+                print 'split failed for ' + tag.GetName()
+                continue
+
             sec[0].SetName(tag.GetName())
             sec[0][c4d.ID_BASEOBJECT_REL_POSITION] = c4d.Vector(0,0,0)
             sec[0][c4d.ID_BASEOBJECT_REL_ROTATION] = c4d.Vector(0,0,0)
-            
+
             # remove polyselections and textures from the split and find a material to keep
             secTag = sec[0].GetTag(c4d.Tpolygonselection)
-            
+
             while secTag:
                 secTag.Remove()
                 secTag = sec[0].GetTag(c4d.Tpolygonselection)
-                
+
             secTag = sec[0].GetFirstTag()
-            
+
             while secTag:
                 oldSecTag = None
                 if secTag.GetType() == c4d.Ttexture:
                     if secTag[c4d.TEXTURETAG_RESTRICTION] == tag.GetName():
                         secTag[c4d.TEXTURETAG_RESTRICTION] = ''
                     else:
-                        oldSecTag = secTag               
-                    
+                        oldSecTag = secTag
+
                 secTag = secTag.GetNext()
                 if oldSecTag:
                     oldSecTag.Remove()
-            
+
             # loop through tags and find any texture tags that have the selection and delete
             oldMatTag = None
             matTag = obj.GetFirstTag()
@@ -483,26 +483,26 @@ def polyselectionbreak(bdoc, bobj):
                 if matTag.GetType() == c4d.Ttexture:
                     if matTag[c4d.TEXTURETAG_RESTRICTION] == tag.GetName():
                         oldMatTag = matTag
-                        
+
                 matTag = matTag.GetNext()
-                
-                if oldMatTag: 
-                    oldMatTag.Remove()     
-                         
+
+                if oldMatTag:
+                    oldMatTag.Remove()
+
             newChildren.append(sec[0])
             #delete the polygons from selectiontag
             utils.SendModelingCommand(command=c4d.MCOMMAND_DELETE, list=[obj], mode=c4d.MODELINGCOMMANDMODE_POLYGONSELECTION, doc=bdoc)
-            
-            
+
+
         tag = tag.GetNext()
-        
+
     # remove selection tags
     tag = obj.GetTag(c4d.Tpolygonselection)
-            
+
     while tag:
         tag.Remove()
-        tag = obj.GetTag(c4d.Tpolygonselection)  
-    
+        tag = obj.GetTag(c4d.Tpolygonselection)
+
     # Optimize in order to remove loose points
     options = c4d.BaseContainer()
     options[c4d.MDATA_OPTIMIZE_TOLERANCE] = 0.001
@@ -510,14 +510,14 @@ def polyselectionbreak(bdoc, bobj):
     options[c4d.MDATA_OPTIMIZE_POLYGONS] = False
     options[c4d.MDATA_OPTIMIZE_UNUSEDPOINTS] = True
     utils.SendModelingCommand(c4d.MCOMMAND_OPTIMIZE, list = [obj], mode = c4d.MODELINGCOMMANDMODE_ALL, bc = options, doc = obj.GetDocument())
-    
-    if (obj.GetPolygonCount() == 0): # no more polys                           
+
+    if (obj.GetPolygonCount() == 0): # no more polys
         if (obj.GetChildren() > 0): # there are children remove this and replace with null then readd the children
             objNull = c4d.BaseObject(c4d.Onull)
             objNull.SetName(obj.GetName())
             objParent = obj.GetUp()
             obj.Remove()
-        
+
             obj = objNull
             bdoc.InsertObject(obj, objParent)
             obj.SetMg(gMatrix)
@@ -525,20 +525,20 @@ def polyselectionbreak(bdoc, bobj):
             objParent = obj.GetUp()
             obj.Remove()
             obj = objParent
-        
+
     for child in newChildren:
         child.InsertUnder(obj)
-        
+
     c4d.EventAdd()
-    
+
 def material_assign_export(matdoc, fileName):
     objects = []
     f = open(fileName, 'w')
-    
+
     mat = matdoc.GetFirstMaterial()
-    
+
     matcnt = matdoc.GetMaterials()
-    
+
     amats = []
     while mat:
         mat.Message(c4d.MSG_UPDATE)
@@ -546,13 +546,13 @@ def material_assign_export(matdoc, fileName):
         amats.append(AssignMaterial(mat.GetName()))
         if mad == None:
             return
-        
+
         #print mat.GetName()+ "," + str(mad.GetObjectCount())
-        
+
         for i in range(mad.GetObjectCount()):
             atom = mad.ObjectFromIndex(matdoc, i)
             if atom == None: continue
-            
+
             # we need to check if the texture tag has a selection,
             # if so we need to specify its a group, other programs
             # have different ways of handling these so we want to
@@ -560,16 +560,16 @@ def material_assign_export(matdoc, fileName):
             if atom.IsInstanceOf(c4d.Ttexture):
                 if atom.GetObject() not in objects:
                     objects.append(atom.GetObject())
-                    
+
                 if atom[c4d.TEXTURETAG_RESTRICTION] != "":
                     amats[-1].groups.append(atom[c4d.TEXTURETAG_RESTRICTION])
                 else:
                     amats[-1].objects.append(atom.GetObject().GetName())
-            
+
         mat = mat.GetNext()
     #setup json data
     data = {"shaders" : {}, "overrides" : {}}
-    
+
     # loop through objects get their overrides and write them out
     for obj in objects:
         tag = obj.GetTag(ARNOLD_PARAM_TAG)
@@ -583,10 +583,10 @@ def material_assign_export(matdoc, fileName):
                 value["subdiv_adaptive_metric"] = tag[C4DAIP_POLYMESH_SUBDIV_ADAPTIVE_METRIC]
                 value["disp_padding"] = tag[C4DAIP_POLYMESH_DISP_PADDING]
                 value["subdiv_adaptive_error"] = tag[C4DAIP_POLYMESH_SUBDIV_ADAPTIVE_ERROR]
-                value["subdiv_smooth_derivs"] = tag[C4DAIP_POLYMESH_SUBDIV_SMOOTH_DERIVS] 
+                value["subdiv_smooth_derivs"] = tag[C4DAIP_POLYMESH_SUBDIV_SMOOTH_DERIVS]
                 value["subdiv_uv_smoothing"] = tag[C4DAIP_POLYMESH_SUBDIV_UV_SMOOTHING]
                 value["subdiv_adaptive_space"] = tag[C4DAIP_POLYMESH_SUBDIV_ADAPTIVE_SPACE]
-                
+
 
             value["opaque"] = tag[C4DAIP_POLYMESH_OPAQUE]
             value["matte"] = tag[C4DAIP_POLYMESH_MATTE]
@@ -596,65 +596,65 @@ def material_assign_export(matdoc, fileName):
             value["self_shadows"] = tag[C4DAIP_POLYMESH_SELF_SHADOWS]
             value["sss_setname"] = tag[C4DAI_POLYMESH_SSS_SET_NAME]
             value["smoothing"] = tag[C4DAIP_POLYMESH_SMOOTHING]
-            
-            data['overrides'][obj.GetName()] = value                               
-                
+
+            data['overrides'][obj.GetName()] = value
+
     # loop through the assigned materials and write them out
     for amat in amats:
         data['shaders'][amat.matname] = { "geo" : amat.objects, "groups" : amat.groups }
-    
+
     json.dump(data, f, indent=2)
-    
+
     f.close()
-    
+
 def arnold_material_export(assdoc, fileName):
     matdoc = c4d.documents.BaseDocument()
     c4d.documents.InsertBaseDocument(matdoc)
 
     matdoc.SetDocumentName(fileName)
     mat = assdoc.GetFirstMaterial()
-    
+
     while mat:
         newmat = mat.GetClone()
-            
+
         matdoc.InsertMaterial(newmat)
         obj = c4d.BaseObject(c4d.Opolygon)
         obj.SetName(newmat.GetName())
         tag = c4d.BaseTag(c4d.Ttexture)
         tag[c4d.TEXTURETAG_MATERIAL] = newmat
-        
+
         obj.InsertTag(tag)
         matdoc.InsertObject(obj)
-        
+
         mat = mat.GetNext()
-     
+
     options = c4d.BaseContainer()
     options.SetFilename(0, fileName.decode("utf-8"))
     options.SetInt32(6, 0)
     options.SetInt32(7, 0)
     matdoc.GetSettingsInstance(c4d.DOCUMENTSETTINGS_DOCUMENT).SetContainer(ARNOLD_ASS_EXPORT, options)
- 
+
     c4d.CallCommand(ARNOLD_ASS_EXPORT)
-    
+
     c4d.documents.KillDocument(matdoc)
-    
+
 # Takes selected objects, isolates them to seperate documents, and exports them as alembics
-# in the file select it expects a path you want to dump the files to, the filename doesn't matter    
+# in the file select it expects a path you want to dump the files to, the filename doesn't matter
 def exportAssets(doc):
     filePath = c4d.storage.SaveDialog(c4d.FILESELECTTYPE_ANYTHING, "Export path...", c4d.FILESELECT_SAVE)
     paths = filePath.rsplit('\\', 1)
-    
+
     filePath = paths[0] + "/"
-    
+
     objs = doc.GetActiveObjects(c4d.GETACTIVEOBJECTFLAGS_0)
-    
+
     for obj in objs:
         bldgdoc = c4d.documents.IsolateObjects(doc, [obj])
         bldgdoc.SetDocumentName(obj.GetName())
         c4d.documents.SetActiveDocument(bldgdoc)
-        
+
         mainparent = bldgdoc.GetFirstObject()
-        
+
         # if this object has children then we'll delete the parent
         # so the pathing in the alembic is simpler, if it has no
         # children then it's the only object so we leave it alone
@@ -662,28 +662,28 @@ def exportAssets(doc):
             if len(mainparent.GetChildren()) > 0:
                 mainparent.SetBit(c4d.BIT_ACTIVE)
                 c4d.CallCommand(1019951) # delete without children
-        
+
         # next we loop though all the objects and break the polyselections
         # up if there are any
         objs = GetAllObjects(bldgdoc)
-        
+
         for obj in objs:
             if obj.GetTag(c4d.Tpolygonselection):
                 polyselectionbreak(bldgdoc, obj)
-            
+
         plug = c4d.plugins.FindPlugin(1028082, c4d.PLUGINTYPE_SCENESAVER)
         if plug is None:
             return
-        
+
         export = {}
         if plug.Message(c4d.MSG_RETRIEVEPRIVATEDATA, export):
             if "imexporter" not in export:
                 return
-        
+
         options = export["imexporter"]
         if options is None:
             return
-        
+
         options[c4d.ABCEXPORT_SELECTION_ONLY] = False
         options[c4d.ABCEXPORT_CAMERAS] = False
         options[c4d.ABCEXPORT_SPLINES] = False
@@ -707,26 +707,26 @@ def exportAssets(doc):
         options[c4d.ABCEXPORT_FRAME_END] = 0
         options[c4d.ABCEXPORT_FRAME_STEP] = 1
         options[c4d.ABCEXPORT_SUBFRAMES] = 1
-        
+
         fileName = filePath + obj.GetName() + ".abc"
-        
+
         # Finally export the document
         if c4d.documents.SaveDocument(bldgdoc, fileName, c4d.SAVEDOCUMENTFLAGS_DONTADDTORECENTLIST, 1028082):
             print "Document successfully exported to:"
             print fileName
         else:
             print "Export failed!"
-        
+
         c4d.EventAdd()
-        
+
         # call material assign export
         material_assign_export(bldgdoc, filePath + obj.GetName() + ".json")
-    
+
         # call arnold material export
         arnold_material_export(bldgdoc, filePath + obj.GetName() + ".ass")
-        
+
         c4d.documents.KillDocument(bldgdoc)
-    
+
     c4d.EventAdd()
 
 def SanitizeEndNumber(name, symbol):
@@ -741,13 +741,13 @@ def SanitizeEndNumber(name, symbol):
 
 # compares a name with a list of stored names and if it matches creates a new unique name
 def CompareName(name, symbol, unique_names):
-    # if the name is not unique we'll keep trying indexes here till we find a name 
+    # if the name is not unique we'll keep trying indexes here till we find a name
     # that's unique
     if name in unique_names:
         newname = None
         index = 0
 
-        while(1):            
+        while(1):
             newname = name + symbol + str(index)
             newname = SanitizeEndNumber(newname, symbol)
 
@@ -755,8 +755,8 @@ def CompareName(name, symbol, unique_names):
                 index += 1
             else:
                 unique_names.append(newname)
-                return newname         
-            
+                return newname
+
 
     # if we make it here just sanitize the numbers on the passed in name
     name = SanitizeEndNumber(name, symbol)
@@ -843,15 +843,15 @@ def name_sanitizer(doc):
 
 def convertMaterials(doc, destType):
     mats = doc.GetActiveMaterials()
-    
+
     for mat in mats:
         # pass a material to MaterialInfo to convert it into a universal format
         matInfo = MaterialInfo(mat)
 
-        # If a conversion did happen above we figure out which renderer the user wants to convert to 
+        # If a conversion did happen above we figure out which renderer the user wants to convert to
         # and call the associated function
         newMat = None
-        
+
         if matInfo.materialInfoSet:
             if destType == MATCONV_C4D:
                 newMat = matInfo.CreateC4DMaterial()
@@ -865,7 +865,7 @@ def convertMaterials(doc, destType):
                 newMat = matInfo.CreateRedshiftMaterial()
             else:
                 return
-        
+
         if newMat:
             doc.InsertMaterial(newMat, pred=None, checknames=True)
 
@@ -873,3 +873,28 @@ def convertMaterials(doc, destType):
             mat.TransferGoal(newMat, False)
 
     c4d.EventAdd()
+
+def createUserDataFloatSlider(obj, name, smin = 0, smax = 1, step=.01):
+    bc = c4d.GetCustomDataTypeDefault(c4d.DTYPE_REAL)
+    bc[c4d.DESC_CUSTOMGUI] = c4d.CUSTOMGUI_REALSLIDER
+    bc[c4d.DESC_NAME] = name
+    bc[c4d.DESC_UNIT] = c4d.DESC_UNIT_PERCENT
+    bc[c4d.DESC_STEP] = step
+    bc[c4d.DESC_MINSLIDER] = smin
+    bc[c4d.DESC_MAXSLIDER] = smax
+        
+    element = obj.AddUserData(bc)
+
+def createUserDataFloat(obj, name, val=None):
+    bc = c4d.GetCustomDataTypeDefault(c4d.DTYPE_LONG)
+    bc[c4d.DESC_NAME] = name
+    element = obj.AddUserData(bc)
+    if val:
+        obj[element] = val
+
+def createUserDataLink(obj, name, val=None):
+    bc = c4d.GetCustomDataTypeDefault(c4d.DTYPE_BASELISTLINK)
+    bc[c4d.DESC_NAME] = name
+    element = obj.AddUserData(bc)
+    if val:
+        obj[element] = val

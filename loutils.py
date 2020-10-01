@@ -324,7 +324,7 @@ def GetTexturePath(mat, shader):
 
     if shader.GetOperatorID() == ARNOLD_C4D_SHADER_GV:
         nodeId = data.GetInt32(C4DAI_GVC4DSHADER_TYPE)
-        print "Node ID: " + str(nodeId)
+        print("Node ID: " + str(nodeId))
         if nodeId == c4d.Xbitmap:
             # the C4D shader is attached to the GV node
             c4d_shader = shader.GetFirstShader()
@@ -334,7 +334,7 @@ def GetTexturePath(mat, shader):
                   if outports[0].GetNrOfConnections() > 0:
                      inport = outports[0].GetDestination()
                      connectedNode = inport[0].GetNode()
-                     print "Connected shader: " + connectedNode.GetName()
+                     print("Connected shader: " + connectedNode.GetName())
 
                      image = CreateArnoldShader(mat, C4DAIN_IMAGE, 0, 50)
                      if image is None:
@@ -370,11 +370,11 @@ def swapC4DBitmapforArnoldImage(doc):
         mat = mat.GetNext()
 
     # print textures
-    print "-----------------------"
-    print "%d texture(s) found" % len(textures)
+    print("-----------------------")
+    print("%d texture(s) found" % len(textures))
     i = 1
     for texture in textures:
-        print " %d. %s.%s: %s" % (i, texture.material.GetName(), texture.shader.GetName(), texture.path)
+        print(" %d. %s.%s: %s" % (i, texture.material.GetName(), texture.shader.GetName(), texture.path))
         i += 1
 
 # will rename the selected objects with a number padding
@@ -446,53 +446,51 @@ def polyselectionbreak(bdoc, bobj):
 
             #split: polygonselection to a new object
             sec = utils.SendModelingCommand(command=c4d.MCOMMAND_SPLIT, list=[obj], mode=c4d.MODELINGCOMMANDMODE_POLYGONSELECTION, doc=bdoc)
-
-            if not sec:
-                print 'split failed for ' + tag.GetName()
-                continue
-
-            sec[0].SetName(tag.GetName())
-            sec[0][c4d.ID_BASEOBJECT_REL_POSITION] = c4d.Vector(0,0,0)
-            sec[0][c4d.ID_BASEOBJECT_REL_ROTATION] = c4d.Vector(0,0,0)
-
-            # remove polyselections and textures from the split and find a material to keep
-            secTag = sec[0].GetTag(c4d.Tpolygonselection)
-
-            while secTag:
-                secTag.Remove()
+            if isinstance(sec, list):
+                sec[0].SetName(tag.GetName())
+                sec[0][c4d.ID_BASEOBJECT_REL_POSITION] = c4d.Vector(0,0,0)
+                sec[0][c4d.ID_BASEOBJECT_REL_ROTATION] = c4d.Vector(0,0,0)
+                
+                # remove polyselections and textures from the split and find a material to keep
                 secTag = sec[0].GetTag(c4d.Tpolygonselection)
 
-            secTag = sec[0].GetFirstTag()
+                while secTag:
+                    secTag.Remove()
+                    secTag = sec[0].GetTag(c4d.Tpolygonselection)
 
-            while secTag:
-                oldSecTag = None
-                if secTag.GetType() == c4d.Ttexture:
-                    if secTag[c4d.TEXTURETAG_RESTRICTION] == tag.GetName():
-                        secTag[c4d.TEXTURETAG_RESTRICTION] = ''
-                    else:
-                        oldSecTag = secTag
+                secTag = sec[0].GetFirstTag()
 
-                secTag = secTag.GetNext()
-                if oldSecTag:
-                    oldSecTag.Remove()
+                while secTag:
+                    oldSecTag = None
+                    if secTag.GetType() == c4d.Ttexture:
+                        if secTag[c4d.TEXTURETAG_RESTRICTION] == tag.GetName():
+                            secTag[c4d.TEXTURETAG_RESTRICTION] = ''
+                        else:
+                            oldSecTag = secTag
 
-            # loop through tags and find any texture tags that have the selection and delete
-            oldMatTag = None
-            matTag = obj.GetFirstTag()
-            while matTag:
-                if matTag.GetType() == c4d.Ttexture:
-                    if matTag[c4d.TEXTURETAG_RESTRICTION] == tag.GetName():
-                        oldMatTag = matTag
+                    secTag = secTag.GetNext()
+                    if oldSecTag:
+                        oldSecTag.Remove()
 
-                matTag = matTag.GetNext()
+                ## loop through tags and find any texture tags that have the selection and delete
+                oldMatTag = None
+                matTag = obj.GetFirstTag()
+                while matTag:
+                    if matTag.GetType() == c4d.Ttexture:
+                        if matTag[c4d.TEXTURETAG_RESTRICTION] == tag.GetName():
+                            oldMatTag = matTag
 
-                if oldMatTag:
-                    oldMatTag.Remove()
+                    matTag = matTag.GetNext()
 
-            newChildren.append(sec[0])
-            #delete the polygons from selectiontag
-            utils.SendModelingCommand(command=c4d.MCOMMAND_DELETE, list=[obj], mode=c4d.MODELINGCOMMANDMODE_POLYGONSELECTION, doc=bdoc)
+                    if oldMatTag:
+                        oldMatTag.Remove()
 
+                newChildren.append(sec[0])
+                ##delete the polygons from selectiontag
+                utils.SendModelingCommand(command=c4d.MCOMMAND_DELETE, list=[obj], mode=c4d.MODELINGCOMMANDMODE_POLYGONSELECTION, doc=bdoc)
+            else:
+                print('split failed for ' + tag.GetName())
+                continue
 
         tag = tag.GetNext()
 
@@ -712,10 +710,10 @@ def exportAssets(doc):
 
         # Finally export the document
         if c4d.documents.SaveDocument(bldgdoc, fileName, c4d.SAVEDOCUMENTFLAGS_DONTADDTORECENTLIST, 1028082):
-            print "Document successfully exported to:"
-            print fileName
+            print("Document successfully exported to:")
+            print(fileName)
         else:
-            print "Export failed!"
+            print("Export failed!")
 
         c4d.EventAdd()
 
@@ -735,7 +733,7 @@ def SanitizeEndNumber(name, symbol):
     if(name.split(symbol)[-1].isdigit()):
         nname_parse = name.rsplit(symbol, 1)
         name = nname_parse[0] + '-' + nname_parse[1]
-        print name
+        print(name)
 
     return name
 

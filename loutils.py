@@ -738,7 +738,7 @@ def SanitizeEndNumber(name, symbol):
     return name
 
 # compares a name with a list of stored names and if it matches creates a new unique name
-def CompareName(name, symbol, unique_names):
+def CompareName(name, symbol, unique_names, enum):
     # if the name is not unique we'll keep trying indexes here till we find a name
     # that's unique
     if name in unique_names:
@@ -747,7 +747,8 @@ def CompareName(name, symbol, unique_names):
 
         while(1):
             newname = name + symbol + str(index)
-            newname = SanitizeEndNumber(newname, symbol)
+            if enum:
+                newname = SanitizeEndNumber(newname, symbol)
 
             if newname in unique_names:
                 index += 1
@@ -757,12 +758,14 @@ def CompareName(name, symbol, unique_names):
 
 
     # if we make it here just sanitize the numbers on the passed in name
-    name = SanitizeEndNumber(name, symbol)
+    if enum:
+        name = SanitizeEndNumber(name, symbol)
+
     unique_names.append(name)
 
     return name
 
-def sanitize_name(obj, symbol, unique_names):
+def sanitize_name(obj, symbol, unique_names, enum):
     # replaces invalid symbols in a name with the symbol specified
     # by the user, then compares it against the unique name list
     name = obj.GetName()
@@ -770,7 +773,7 @@ def sanitize_name(obj, symbol, unique_names):
     newname = re.sub(r"[/\?\[\.|_\- \]#]", symbol, name)
     newname = newname.lower()
 
-    newname = CompareName(newname, symbol, unique_names)
+    newname = CompareName(newname, symbol, unique_names, enum)
 
     #print newname
     obj.SetName(newname)
@@ -779,8 +782,10 @@ def sanitize_name(obj, symbol, unique_names):
 # are consistent during export, if names have special characters
 # or exact same names they can and will get mangled by the C4D
 # export process, this is bad as we rely on exact same names for
-# many of our tools in other programs
-def name_sanitizer(doc):
+# many of our tools in other programs, rep is the character to
+# replace invalids with, enum is whether you want to fix end
+# numbers that might be added on
+def name_sanitizer(doc, rep, enum):
     unique_names = []
 
     # sanitize objects
@@ -790,7 +795,7 @@ def name_sanitizer(doc):
         return
 
     while obj:
-        sanitize_name(obj, "_", unique_names)
+        sanitize_name(obj, rep, unique_names, enum)
 
         tag = obj.GetFirstTag()
         while tag:
@@ -803,9 +808,9 @@ def name_sanitizer(doc):
 
                 old_sel_name = tag.GetName()
 
-                tag.SetName(obj.GetName() + "_" + tag.GetName())
+                tag.SetName(obj.GetName() + rep + tag.GetName())
 
-                sanitize_name(tag, "_", unique_names)
+                sanitize_name(tag, rep, unique_names, enum)
 
                 new_sel_name = tag.GetName()
 
@@ -833,7 +838,7 @@ def name_sanitizer(doc):
         return
 
     while mat:
-        sanitize_name(mat, "_", unique_names)
+        sanitize_name(mat, rep, unique_names, enum)
 
         mat = mat.GetNext()
 

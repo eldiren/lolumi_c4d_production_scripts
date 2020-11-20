@@ -68,30 +68,30 @@ def QueryNetwork(material):
     msg.SetInt32(C4DTOA_MSG_TYPE, C4DTOA_MSG_QUERY_SHADER_NETWORK)
     material.Message(c4d.MSG_BASECONTAINER, msg)
     return msg
-    
+
 def GetTexturePath(mat, shader):
     if shader is None: return None
-    
+
     data = shader.GetOpContainerInstance()
-        
+
     if shader.GetOperatorID() == ARNOLD_C4D_SHADER_GV:
         nodeId = data.GetInt32(C4DAI_GVC4DSHADER_TYPE)
-        print "Node ID: " + str(nodeId)
+        print("Node ID: " + str(nodeId))
         if nodeId == c4d.Xbitmap:
             # the C4D shader is attached to the GV node
             c4d_shader = shader.GetFirstShader()
             if c4d_shader is not None:
                outports = shader.GetOutPorts(0)
-               if outports[0]:    
+               if outports[0]:
                   if outports[0].GetNrOfConnections() > 0:
                      inport = outports[0].GetDestination()
                      connectedNode = inport[0].GetNode()
-                     print "Connected shader: " + connectedNode.GetName()
-               
+                     print("Connected shader: " + connectedNode.GetName())
+
                      image = CreateArnoldShader(mat, C4DAIN_IMAGE, 0, 50)
                      if image is None:
                         raise Exception("Failed to create image shader")
-                     
+
                      imagepath = c4d_shader.GetDataInstance().GetFilename(c4d.BITMAPSHADER_FILENAME)
                      image.GetOpContainerInstance().SetFilename(C4DAIP_IMAGE_FILENAME, imagepath)
                      image.GetOpContainerInstance().SetString(868305056, 'linear')
@@ -99,17 +99,17 @@ def GetTexturePath(mat, shader):
                      shader.Remove()
 
     return None
-    
+
 class TextureInfo:
-    
+
     def __init__(self, mat, shader, texturePath):
         self.material = mat
         self.shader = shader
         self.path = texturePath
-        
+
 def main():
     textures = []
-    
+
     # collect textures
     mat = doc.GetFirstMaterial()
     while mat:
@@ -124,16 +124,16 @@ def main():
                 if texturePath:
                     texture = TextureInfo(mat, shader, texturePath)
                     textures.append(texture)
-        
+
         mat = mat.GetNext()
 
     # print textures
-    print "-----------------------"
-    print "%d texture(s) found" % len(textures)
+    print("-----------------------")
+    print("%d texture(s) found" % len(textures))
     i = 1
     for texture in textures:
-        print " %d. %s.%s: %s" % (i, texture.material.GetName(), texture.shader.GetName(), texture.path)
+        print(" %d. %s.%s: %s" % (i, texture.material.GetName(), texture.shader.GetName(), texture.path))
         i += 1
-        
+
 if __name__=='__main__':
     main()
